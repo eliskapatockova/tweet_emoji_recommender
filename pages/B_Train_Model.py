@@ -2,8 +2,8 @@ import streamlit as st                  # pip install streamlit
 from helper_functions import fetch_dataset
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score
 
 
 #############################################
@@ -91,15 +91,21 @@ def split_dataset(df, number, feature_encoding, random_state=42):
 def inspect_coefficients(models):
     pass
 
-def random_forest(X_train, X_val, y_train):
-    classifier = RandomForestClassifier(n_estimators=100, random_state=42)
-    classifier.fit(X_train, y_train)
-    y_pred = classifier.predict(X_val)
-    return classifier, y_pred
+def train_random_forest(X_train, y_train, params):
+    model = RandomForestClassifier(n_estimators=params['n_estimators'], 
+                                   max_depth=params['max_depth'], 
+                                   random_state=params['random_state'])
+    model.fit(X_train, y_train)
+    return model
 
-def mlp(X_train, X_val, y_train):
-    nn_classifier = MLPClassifier(hidden_layer_sizes=(100,), max_iter=500, random_state=42)
-    nn_classifier.fit(X_train, y_train)
+def train_mlp(X_train, y_train, params):
+    model = MLPClassifier(hidden_layer_sizes=params['hidden_layer_sizes'], 
+                          activation=params['activation'], 
+                          max_iter=params['max_iter'], 
+                          random_state=params['random_state'])
+    model.fit(X_train, y_train)
+    return model
+
 
 if df is not None:
     # Display dataframe as table
@@ -147,63 +153,102 @@ if df is not None:
     )
     st.write('You selected the follow models: {}'.format(model_select))
 
+
+    # Random Forest parameters selection
     if (model_options[0] in model_select):
         st.markdown('#### ' + model_options[0])
 
         param_col1, param_col2 = st.columns(2)
         with (param_col1):
-            param1_options = []
+            param1_options = [100, 200, 300, 400] # Number of trees in the forest
             param1_select = st.selectbox(
-                label='Select param1',
+                label='Select number of trees in the forest',
                 options=param1_options,
                 key='param1_select'
             )
             st.write('You select the following <param1>: {}'.format(param1_select))
 
-            param2_options = []
+            param2_options = [None, 10, 20, 30]  # Maximum depth of the trees
             param2_select = st.selectbox(
-                label='Select param2',
+                label='Select maximum depth of the trees',
                 options=param2_options,
                 key='param2_select'
             )
             st.write('You select the following <param2>: {}'.format(param2_select))
 
         with (param_col2):
-            param3_options = []
+            param3_options =  [42]  # Random state for reproducibility
             param3_select = st.selectbox(
-                label='Select param3',
+                label='Select number of random state',
                 options=param3_options,
                 key='param3_select'
             )
             st.write('You select the following <param3>: {}'.format(param3_select))
 
-            param4_options = []
-            param4_select = st.selectbox(
-                label='Select param4',
+        rf_params = {
+            'n_estimators': param1_select,
+            'max_depth': param2_select,
+            'random_state': param3_select
+        }
+        
+        # MLP parameters selection
+        if (model_options[1] in model_select):
+            st.markdown('#### ' + model_options[1])
+
+            param_col1, param_col2 = st.columns(2)
+            with (param_col1):
+                param4_options = [(100,), (200,), (300,), (400,)]  # Number of neurons in hidden layers
+                param4_select = st.selectbox(
+                label='Select number of neurons in hidden layers',
                 options=param4_options,
                 key='param4_select'
-            )
-            st.write('You select the following <param4>: {}'.format(param4_select))
+                )
+                st.write('You select the following <param4>: {}'.format(param4_select))
 
-        model_params = {
-            'param1': param1_select,
-            'param2': param2_select,
-            'param3': param3_select,
-            'param4': param4_select
-        }
+                param5_options = ['relu', 'tanh', 'logistic']  # Activation function
+                param5_select = st.selectbox(
+                    label='Select which activation function to use',
+                    options=param2_options,
+                    key='param5_options'
+                )
+                st.write('You select the following <param5>: {}'.format(param5_options))
+
+            with (param_col2):
+                param6_options = [200, 300, 400]  # Maximum number of iterations
+                param6_select = st.selectbox(
+                    label='Select number of iterations to perform',
+                    options=param6_options,
+                    key='param6_options'
+                )
+                st.write('You select the following <param6>: {}'.format(param6_options))
+
+                param7_options = [42]  # Random state for reproducibility
+                param7_select = st.selectbox(
+                    label='Select number of random states',
+                    options=param7_options,
+                    key='param7_options'
+                )
+                st.write('You select the following <param7>: {}'.format(param7_options))
+
+            nn_params = {
+                'hidden_layer_sizes': param4_select,
+                'activation': param5_select,
+                'max_iter': param6_select,
+                'random_state': param7_select
+            }
 
         if st.button('Train Random Forest Model'):
-            random_forest(
-                X_train, y_train, model_options[0], rf_params)
+            st.session_state[model_options[0]] = train_random_forest(X_train, y_train, rf_params)
+            # st.write('Random Forest Model trained')
+
+        if st.button('Train Neural Network Classifier (MLP) Model'):
+            st.session_state[model_options[1]] = train_mlp(X_train, y_train, nn_params)
+            # st.write('Neural Network Classifier (MLP) Model trained')
 
         if model_options[0] not in st.session_state:
             st.write('Random Forest Model is untrained')
         else:
             st.write('Random Forest Model trained')
-
-        if st.button('Train Neural Network Classifier (MLP) Model'):
-            random_forest(
-                X_train, y_train, model_options[1], nn_params)
 
         if model_options[1] not in st.session_state:
             st.write('Neural Network Classifier (MLP) Model is untrained')

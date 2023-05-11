@@ -73,7 +73,6 @@ def preprocess_step_1(df_emoji):
     df_emoji["Text"] = df_emoji["Text"].apply(lambda x: re.sub('\n', '', x))
     # get a list of emojis
     df_emoji["Emoji"] = df_emoji["Text"].apply(get_emojis)
-
     # remove mentions, hashtags, newlines, links
     df_emoji["Text"] = df_emoji["Text"].apply(remove_emojis)
     df_emoji["Text"] = df_emoji["Text"].apply(lambda x: re.sub('[@#][^\s]+', '', x))
@@ -84,16 +83,12 @@ def preprocess_step_1(df_emoji):
 
 
 def preprocess_step_2(df_emoji):
-
     #remove special characters
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: re.sub(r"[^A-Za-z0-9@\'\`\"\_\n]", " ", x))
-
     #remove whitespaces
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: re.sub(r" +", " ", x, flags=re.I))
-
     # remove numbers
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: remove_numbers(x))
-
     return df_emoji
 
 
@@ -105,10 +100,8 @@ def preprocess_step_3(df_emoji):
     #remove stopwords from text
     nltk.download('stopwords')
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: remove_stopwords(x))
-
     # convert to lower case
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: x.lower())
-
     return df_emoji
 
 #############################################
@@ -160,6 +153,7 @@ def tf_idf_encoder(df, feature, word_encoder):
         '{} column has TF-IDF encoded {} tweets.'.format(feature, len(df)))
     return df
 
+##################################### STREAMLIT APP #####################################
 
 df = join_dataframes()
 
