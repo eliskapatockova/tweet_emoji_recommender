@@ -89,7 +89,37 @@ def split_dataset(df, number, feature_encoding, random_state=42):
 
 
 def inspect_coefficients(models):
-    pass
+    """
+    This function gets the coefficients of the trained models and displays the model name and coefficients
+
+    Input:
+        - trained_models: list of trained names (strings)
+    Output:
+        - out_dict: a dicionary contains the coefficients of the selected models, with the following keys:
+            - model_name: model coefficients
+    """
+    out_dict = {}
+    for model_name, model in models.items():
+        if (model_name == 'Random Forest'):
+            out_dict[model_name] = model.feature_importances_
+            st.write('### Coefficients inspection for {0}'.format(model_name))
+            st.write('Number of positive coefficients: {0}'.format(
+                    len(model.feature_importances_[model.feature_importances_ > 0])))
+            st.write('Number of negative coefficients: {0}'.format(
+                len(model.feature_importances_[model.feature_importances_ < 0])))
+
+        elif (model_name == 'MLP'):
+            coef = model.coef_
+            out_dict[model_name] = coef
+            st.write('### Coefficients inspection for {0}'.format(model_name))
+            st.write('Total number of coefficients: {0}'.format(coef.shape[1]))
+            st.write('Number of positive coefficients: {0}'.format(
+                    len(coef[coef > 0])))
+            st.write('Number of negative coefficients: {0}'.format(
+                len(coef[coef < 0])))
+        else:
+            st.write('Invalid model name provided in inspect_coefficients')
+    return out_dict
 
 def train_random_forest(X_train, y_train, params):
     model = RandomForestClassifier(n_estimators=params['n_estimators'], 

@@ -45,8 +45,7 @@ def space_emojis(s):
     return ''.join((' '+c+' ') if c in emojis else c for c in s)
 
 def remove_numbers(text):
-    no_num = re.sub(r'\d+', '', text)
-    return no_num
+    return re.sub(r'\d+', '', text)
 
 def detect_lang(text):
     try:
@@ -140,7 +139,7 @@ def word_count_encoder(df, feature, word_encoder):
 
     return df
 
-# Checkpoint 3
+
 def tf_idf_encoder(df, feature, word_encoder):
     vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1, 3))
     X = vectorizer.fit_transform(df['Tweet'])
@@ -154,21 +153,30 @@ def tf_idf_encoder(df, feature, word_encoder):
     return df
 
 ##################################### STREAMLIT APP #####################################
+df = None
+column1, column2 = st.columns(2)
 
-df = join_dataframes()
+with column1:
+    st.write("Merge Kaggle's tweets datasets")
+    if st.button('Merge Datasets'):
+        df = join_dataframes()
+        df = df.iloc[2:, :]
+        st.write("Merged dataset has {} tweets.".format(
+            df.shape[0]))
+        st.session_state['data'] = df
+
+with column2:
+    st.write("Select dataset from local machine")
+    if st.button('Load Dataset'):
+        df = fetch_dataset()
+        st.write("Loaded dataset has {} rows and {} columns.".format(
+            df.shape[0], df.shape[1]))
+        st.session_state['data'] = df
 
 if df is not None:
     # Display original dataframe
-    st.markdown('View initial data with missing values or invalid inputs')
+    st.markdown('You have uploaded the following dataset:')
     st.dataframe(df)
-
-    st.markdown('You have uploaded the dataset.')
-    st.dataframe(df)
-
-    # Inspect the dataset
-    st.markdown('### Inspect and visualize some interesting features')
-    st.markdown('##### Filter tweets by emojis')
-    #TODO
 
     # Handle Text and Categorical Attributes
     st.markdown('### Preprocess Data')
@@ -186,6 +194,16 @@ if df is not None:
         st.write("Emoji lists turned into one emoji per tweet")
         st.dataframe(prep_df)
 
+    # Inspect the dataset
+    if (prep_df is not None):
+        st.markdown('### Inspect and visualize some interesting features')
+        st.markdown('###### Filter tweets by emojis')
+        data_emoji_list = list(df['Emoji'].unique())
+        emoji = st.selectbox('Select an emoji', data_emoji_list)
+        emoji_df = df[df['Emoji'] == emoji]
+        st.write('There are {} tweets with the {} emoji.'.format(
+            len(emoji_df), emoji))
+        st.dataframe(emoji_df)
 
     st.markdown('### Encode Tweet Text Data')
     # string_columns = list(df.select_dtypes(['object']).columns)
@@ -193,34 +211,48 @@ if df is not None:
     word_encoder = []
     word_count_col, tf_idf_col = st.columns(2)
     ############## Task 2: Perform Word Count Encoding
-    word_encoded_df = None
-    if (st.button('Word Encoder')):
-        word_encoded_df = word_count_encoder(df, 'Text')
-        # Show updated dataset
-        st.dataframe(word_encoded_df)
-        df = word_encoded_df
+    with word_count_col:
+        st.write('Word Count Encoding')
+        word_encoded_df = None
+        if (st.button('Word Encoder')):
+            word_encoded_df = word_count_encoder(df, 'Text')
+            # Show updated dataset
+            st.write('Word Count Encoding has been applied to {} tweets.'.format(len(word_encoded_df)))
+            st.write('Updated dataset:')
+            st.dataframe(word_encoded_df)
+            df = word_encoded_df
+            st.session_state['data'] = df
 
     ############## Task 3: Perform TF-IDF Encoding
-    tfidf_encoded_df = None
-    if (st.button('TF-IDF Encoder')):
-        tfidf_encoded_df = tf_idf_encoder(df, 'Text')
-        # Show updated dataset
-        st.dataframe(tfidf_encoded_df)
-        df = tfidf_encoded_df
+    with tf_idf_col:
+        st.write('TF-IDF Encoding')
+        tfidf_encoded_df = None
+        if (st.button('TF-IDF Encoder')):
+            tfidf_encoded_df = tf_idf_encoder(df, 'Text')
+            # Show updated dataset
+            st.write('TF-IDF Encoding has been applied to {} tweets.'.format(len(tfidf_encoded_df)))
+            st.write('Updated dataset:')
+            st.dataframe(tfidf_encoded_df)
+            df = tfidf_encoded_df
+            st.session_state['data'] = df
     
     st.markdown('### Encode Emojis Class Labels into Numerical Values')
 
     # df['Emoji_Labels'] = df['Emoji'].astype('category').cat.codes
     st.dataframe(df)
 
-    st.markdown('### You have now preprocessed the dataset.')
-    # st.dataframe(prep_df)
-    st.markdown('### Write the preprocessed data to a new csv')
-    if (st.button('Write to csv')):
-        df.coalesce(1).write.csv("./data/preprocessed_df", mode='overwrite', header=True)
-
     
-    if (st.button('Save Dataframe')):
-        st.session_state['data'] = df
+    st.markdown('#### You have now preprocessed the dataset.')
+    # st.dataframe(prep_df)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('###### Write the preprocessed data to a new csv')
+        if (st.button('Write to csv')):
+            df.coalesce(1).write.csv("./data/preprocessed_df", mode='overwrite', header=True)
+
+    with col2:
+        st.markdown('###### Save the preprocessed data to st.session_state')
+        if (st.button('Save Dataframe')):
+            st.session_state['data'] = df
 
     st.write('Continue to Train Model')
