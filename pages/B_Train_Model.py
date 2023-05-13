@@ -3,7 +3,6 @@ from helper_functions import fetch_dataset
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import accuracy_score
 
 
 #############################################
@@ -45,7 +44,7 @@ def split_dataset(df, number, feature_encoding, random_state=42):
 
     X_train_emoji, X_val_emoji = [], []
     try:
-        X, y = df.drop(['Emoji', 'Emoji_Labels', 'Tweet'], axis=1), df["Emoji_Labels"]
+        X, y = df.drop(['Emoji', 'Tweet'], axis=1), df["Emoji"]
 
         # Split the train and test sets into X_train, X_val, y_train, y_val using X, y, number/100, and random_state
         X_train, X_val, y_train, y_val = train_test_split(
@@ -53,15 +52,11 @@ def split_dataset(df, number, feature_encoding, random_state=42):
 
         # Use the column word_count as a feature and the column sentiment as the target
         if ('TF-IDF' in feature_encoding):
-            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith(
-                'tf_idf_word_count_')]
-            X_val_emoji = X_val.loc[:, X_val.columns.str.startswith(
-                'tf_idf_word_count_')]
+            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith('tf_idf_word_count_')]
+            X_val_emoji = X_val.loc[:, X_val.columns.str.startswith('tf_idf_word_count_')]
         elif ('Word Count' in feature_encoding):
-            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith(
-                'word_count_')]
-            X_val_emoji = X_val.loc[:,
-                                        X_val.columns.str.startswith('word_count_')]
+            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith('word_count_')]
+            X_val_emoji = X_val.loc[:, X_val.columns.str.startswith('word_count_')]
         else:
             st.write('Invalid feature encoding provided in split_dataset')
 
@@ -74,8 +69,7 @@ def split_dataset(df, number, feature_encoding, random_state=42):
         # Print dataset split result
         st.markdown('The training dataset contains {0:.2f} observations ({1:.2f}%) and the test dataset contains {2:.2f} observations ({3:.2f}%).'.format(len(X_train),
                                                                                                                                                           train_percentage,
-                                                                                                                                                          len(
-                                                                                                                                                              X_val),
+                                                                                                                                                          len(X_val),
                                                                                                                                                           test_percentage))
 
         # Save train and test split to st.session_state
@@ -196,7 +190,7 @@ if df is not None:
                 options=param1_options,
                 key='param1_select'
             )
-            st.write('You select the following <param1>: {}'.format(param1_select))
+            st.write('You select the following number of trees in the forest: {}'.format(param1_select))
 
             param2_options = [None, 10, 20, 30]  # Maximum depth of the trees
             param2_select = st.selectbox(
@@ -204,7 +198,7 @@ if df is not None:
                 options=param2_options,
                 key='param2_select'
             )
-            st.write('You select the following <param2>: {}'.format(param2_select))
+            st.write('You select the following maximum depth of the tress: {}'.format(param2_select))
 
         with (param_col2):
             param3_options =  [42]  # Random state for reproducibility
@@ -213,7 +207,7 @@ if df is not None:
                 options=param3_options,
                 key='param3_select'
             )
-            st.write('You select the following <param3>: {}'.format(param3_select))
+            st.write('You select the following random states: {}'.format(param3_select))
 
         rf_params = {
             'n_estimators': param1_select,
@@ -233,7 +227,7 @@ if df is not None:
                 options=param4_options,
                 key='param4_select'
                 )
-                st.write('You select the following <param4>: {}'.format(param4_select))
+                st.write('You select the following number of neurons in hidden layers: {}'.format(param4_select))
 
                 param5_options = ['relu', 'tanh', 'logistic']  # Activation function
                 param5_select = st.selectbox(
@@ -241,7 +235,7 @@ if df is not None:
                     options=param2_options,
                     key='param5_options'
                 )
-                st.write('You select the following <param5>: {}'.format(param5_options))
+                st.write('You select the following activation function: {}'.format(param5_options))
 
             with (param_col2):
                 param6_options = [200, 300, 400]  # Maximum number of iterations
@@ -250,7 +244,7 @@ if df is not None:
                     options=param6_options,
                     key='param6_options'
                 )
-                st.write('You select the following <param6>: {}'.format(param6_options))
+                st.write('You select the following max number of iterations: {}'.format(param6_options))
 
                 param7_options = [42]  # Random state for reproducibility
                 param7_select = st.selectbox(
@@ -258,7 +252,7 @@ if df is not None:
                     options=param7_options,
                     key='param7_options'
                 )
-                st.write('You select the following <param7>: {}'.format(param7_options))
+                st.write('You select the following random state: {}'.format(param7_options))
 
             nn_params = {
                 'hidden_layer_sizes': param4_select,

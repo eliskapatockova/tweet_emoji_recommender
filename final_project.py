@@ -15,4 +15,13 @@ st.markdown("##### Team Members: Aya Chehabi (ac2532), TO COMPLETE")
 st.markdown("##### Project Description:")
 st.markdown("TO COMPLETE")
 
+st.markdown("The use of AI in keyboard predictive text (as seen in iMessage, WhatsApp, etc) has become a common and useful form of assistance")
+
+st.markdown("This has transitioned more recently into the suggestion of emojis one may use after typing a particular word ")
+
+st.markdown("The next step in this form of innovation has already begun, where entire chains or groups of texts are analyzed and interpreted, and a suggested emoji that summarizes the overall text is proposed")
+
+st.markdown("We are focusing on applying this to Twitter, where we will develop a model that can analyze a tweet and give the best/most likely chosen and representative emoji that summarizes the overall message")
+
+
 st.markdown("Click **Explore Dataset** to get started.")

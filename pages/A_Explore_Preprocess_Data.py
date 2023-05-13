@@ -28,7 +28,7 @@ def join_dataframes():
     # frames = [ process_your_file(f) for f in files ]
     # result = pd.concat(frames)
     df = pd.concat(frames)
-    return df
+    return df.iloc[2:, :]
 
 def get_emojis(s):
     return emoji.distinct_emoji_list(str(s))
@@ -55,7 +55,7 @@ def detect_lang(text):
     
 def remove_stopwords(text):
     stop = stopwords.words('english')
-    no_stop = " ".join([c for c in text if c not in stop])
+    no_stop = " ".join([c for c in text.split(" ") if c not in stop])
     return no_stop
 
 def sepeate_emoji_lines(df):
@@ -103,6 +103,48 @@ def preprocess_step_3(df_emoji):
     df_emoji['Text'] = df_emoji['Text'].apply(lambda x: x.lower())
     return df_emoji
 
+def word_count_encoder(df, feature):
+    count_vect = CountVectorizer(max_features=10000)
+
+    X_train_counts = count_vect.fit_transform(df[feature])
+    word_count_df = pd.DataFrame(X_train_counts.toarray())
+    # word_count_df = pd.DataFrame.sparse.from_spmatrix(X_train_counts)
+    word_count_df = word_count_df.add_prefix('word_count_')
+    # df = pd.concat([df, word_count_df], axis=1)
+
+    word_count_df = word_count_df.reset_index(drop=True)
+    df = pd.concat([df.reset_index(drop=True), word_count_df], axis=1)
+
+    # Show confirmation statement
+    st.write('{} has word count encoded {} tweets.'.format(
+        feature, len(word_count_df)))
+
+    # Store new features in st.session_state
+    # st.session_state['encoded_data'] = df
+
+    # word_encoder.append('Word Count')
+    # st.session_state['word_encoder'] = word_encoder
+    # st.session_state['count_vect'] = count_vect
+
+    return df
+
+def tf_idf_encoder(df, feature, word_encoder):
+    vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1, 3))
+    X = vectorizer.fit_transform(df[feature])
+
+    tf_idf_df = pd.DataFrame(X.toarray())
+    tf_idf_df = tf_idf_df.add_prefix('tf_idf_word_count_')
+    tf_idf_df = tf_idf_df.reset_index(drop=True)
+    df = pd.concat([df.reset_index(drop=True), tf_idf_df], axis=1)
+
+    st.session_state['encoded_data'] = df
+
+    # word_encoder.append('TFITDF Count')
+    # st.session_state['tfidf_encoder'] = word_encoder
+    # st.session_state['tfidf_vect'] = vectorizer
+    
+    return df
+
 #############################################
 
 st.markdown("# Practical Applications of Machine Learning (PAML)")
@@ -118,65 +160,36 @@ st.markdown('# Explore & Preprocess Dataset')
 #############################################
 # REF: https://stackoverflow.com/a/69423881
 
-def word_count_encoder(df, feature, word_encoder):
-    count_vect = CountVectorizer()
-
-    X_train_counts = count_vect.fit_transform(df[feature])
-    word_count_df = pd.DataFrame(X_train_counts.toarray())
-    word_count_df = word_count_df.add_prefix('word_count_')
-    df = pd.concat([df, word_count_df], axis=1)
-
-    # Show confirmation statement
-    st.write('{} has been word count encoded from {} tweets.'.format(
-        feature, len(word_count_df)))
-
-    # Store new features in st.session_state
-    st.session_state['data'] = df
-
-    word_encoder.append('Word Count')
-    st.session_state['word_encoder'] = word_encoder
-    st.session_state['count_vect'] = count_vect
-
-    return df
-
-
-def tf_idf_encoder(df, feature, word_encoder):
-    vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1, 3))
-    X = vectorizer.fit_transform(df['Tweet'])
-
-    tf_idf_df = pd.DataFrame(X.toarray())
-    tf_idf_df = tf_idf_df.add_prefix('tf_idf_word_count_')
-    df = pd.concat([df, tf_idf_df], axis=1)
-
-    st.write(
-        '{} column has TF-IDF encoded {} tweets.'.format(feature, len(df)))
-    return df
 
 ##################################### STREAMLIT APP #####################################
 df = None
-column1, column2 = st.columns(2)
+st.markdown("### Kaggle's tweets datasets are automatically merged and used as default.")
+df = join_dataframes()
+sample_df=df.sample(n = 1000)
+sample_df.to_csv("./data/sample_df.csv", index=False)
+st.write("If you wish to use your own dataset, please upload it below.")
+st.write("Select dataset from local machine")
 
-with column1:
-    st.write("Merge Kaggle's tweets datasets")
-    if st.button('Merge Datasets'):
-        df = join_dataframes()
-        df = df.iloc[2:, :]
-        st.write("Merged dataset has {} tweets.".format(
-            df.shape[0]))
-        st.session_state['data'] = df
+testing = True
 
-with column2:
-    st.write("Select dataset from local machine")
+if testing:
+    df = pd.read_csv("./data/sample_df.csv")
+else:
     if st.button('Load Dataset'):
-        df = fetch_dataset()
-        st.write("Loaded dataset has {} rows and {} columns.".format(
-            df.shape[0], df.shape[1]))
-        st.session_state['data'] = df
+        data = st.file_uploader(
+                'Upload a Dataset', type=['csv', 'txt'])
+        if (data):
+            df = pd.read_csv(data)
+        if df is not None:
+            st.write("Loaded dataset has {} rows and {} columns.".format(
+                df.shape[0], df.shape[1]))
+st.session_state['data'] = df
 
 if df is not None:
     # Display original dataframe
     st.markdown('You have uploaded the following dataset:')
     st.dataframe(df)
+    st.markdown("Dataframe length: ", len(df. index))
 
     # Handle Text and Categorical Attributes
     st.markdown('### Preprocess Data')
@@ -184,64 +197,78 @@ if df is not None:
     st.markdown('This button will seperate the data into text and emojis, convert text to lowercase, and remove special characters, numbers, other languages, and stopwords.')
     prep_df = None
     if (st.button('Preprocess Data')):
+
         prep_df = preprocess_step_1(df)
         st.write("Emojis and text have been split into separate columns, EoL, mentions, hashtags, newlines, links removed")
-        prep_df = preprocess_step_2(df)
+        
+        prep_df = preprocess_step_2(prep_df)
         st.write("Special characters, numbers, and extra whitespace removed")
-        prep_df = preprocess_step_3(df)
+
+        prep_df = preprocess_step_3(prep_df)
         st.write("Stopwords and other languages have been removed, text has been converted to lowercase")
-        prep_df = pd.DataFrame(prep_df.apply(lambda x: [(x['Text'], emoji) for emoji in x['Emoji']], axis=1).sum(), columns=['Text', 'Emoji'])
+
+        prep_df = prep_df.explode("Emoji").reset_index(drop=True)
         st.write("Emoji lists turned into one emoji per tweet")
+
+        word_encoded_df = word_count_encoder(prep_df, 'Text')
+        word_encoded_df.to_csv("./data/preprocessed_df.csv", index=False
+                               )
+        st.write("Word Encoded & Saved")
+
         st.dataframe(prep_df)
+        st.session_state['data'] = prep_df
 
     # Inspect the dataset
-    if (prep_df is not None):
-        st.markdown('### Inspect and visualize some interesting features')
-        st.markdown('###### Filter tweets by emojis')
-        data_emoji_list = list(df['Emoji'].unique())
-        emoji = st.selectbox('Select an emoji', data_emoji_list)
-        emoji_df = df[df['Emoji'] == emoji]
-        st.write('There are {} tweets with the {} emoji.'.format(
-            len(emoji_df), emoji))
-        st.dataframe(emoji_df)
+    # if (prep_df is not None):
+    #     st.markdown('### Inspect and visualize some interesting features')
+    #     st.markdown('###### Filter tweets by emojis')
+    #     data_emoji_list = list(df['Emoji'].unique())
+    #     emoji = st.selectbox('Select an emoji', data_emoji_list)
+    #     emoji_df = df[df['Emoji'] == emoji]
+    #     st.write('There are {} tweets with the {} emoji.'.format(
+    #         len(emoji_df), emoji))
+    #     st.dataframe(emoji_df)
 
     st.markdown('### Encode Tweet Text Data')
     # string_columns = list(df.select_dtypes(['object']).columns)
     # string_columns = list(df.select_dtypes(['string']).columns)
     word_encoder = []
     word_count_col, tf_idf_col = st.columns(2)
-    ############## Task 2: Perform Word Count Encoding
+    # Perform Word Count Encoding
     with word_count_col:
         st.write('Word Count Encoding')
         word_encoded_df = None
         if (st.button('Word Encoder')):
-            word_encoded_df = word_count_encoder(df, 'Text')
+            prep_df = st.session_state['data']
+            st.dataframe(prep_df)
+            st.dataframe(prep_df.reset_index(drop=True))
+            word_encoded_df = word_count_encoder(prep_df, 'Text', "Word Encode")
             # Show updated dataset
-            st.write('Word Count Encoding has been applied to {} tweets.'.format(len(word_encoded_df)))
+            st.write('Word Count Encoding has been applied to {} tweets.'.format(len(word_encoded_df.index)))
             st.write('Updated dataset:')
             st.dataframe(word_encoded_df)
-            df = word_encoded_df
-            st.session_state['data'] = df
+            # df = word_encoded_df
+            st.session_state['data'] = word_encoded_df
 
-    ############## Task 3: Perform TF-IDF Encoding
+    # Perform TF-IDF Encoding
     with tf_idf_col:
         st.write('TF-IDF Encoding')
         tfidf_encoded_df = None
         if (st.button('TF-IDF Encoder')):
-            tfidf_encoded_df = tf_idf_encoder(df, 'Text')
+            prep_df = st.session_state['data']
+            tfidf_encoded_df = tf_idf_encoder(prep_df, 'Text', "TFIDF Encode")
             # Show updated dataset
-            st.write('TF-IDF Encoding has been applied to {} tweets.'.format(len(tfidf_encoded_df)))
+            st.write('TF-IDF Encoding has been applied to {} tweets.'.format(len(tfidf_encoded_df.index)))
             st.write('Updated dataset:')
             st.dataframe(tfidf_encoded_df)
-            df = tfidf_encoded_df
-            st.session_state['data'] = df
-    
+            # df = tfidf_encoded_df
+            st.session_state['data'] = tfidf_encoded_df
+        
     st.markdown('### Encode Emojis Class Labels into Numerical Values')
 
     # df['Emoji_Labels'] = df['Emoji'].astype('category').cat.codes
-    st.dataframe(df)
+    # st.dataframe(df)
 
-    
     st.markdown('#### You have now preprocessed the dataset.')
     # st.dataframe(prep_df)
     col1, col2 = st.columns(2)
