@@ -1,12 +1,13 @@
 import streamlit as st
 import string
+# from pages.A_Train_Model import preprocess_step_1, preprocess_step_2, preprocess_step_3
 #############################################
 
 st.markdown("# Practical Applications of Machine Learning (PAML)")
 
 #############################################
 
-st.markdown("### Final Project - <project title>")
+st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 #############################################
 
@@ -22,7 +23,7 @@ def deploy_model(text):
     Output: 
         - tweet prediction: which emoji to use
     """
-    product_sentiment=None
+    emoji_pred=None
     model=None
     if('deploy_model' in st.session_state):
         model = st.session_state['deploy_model']
@@ -31,22 +32,7 @@ def deploy_model(text):
             emoji_pred = model.predict(text)
     
     # return product
-    return convert_pred_to_emoji(emoji_pred)
-
-def convert_pred_to_emoji(pred):
-    """
-    Convert the class label emoji predicted to the actual emoji
-    Input: 
-        - pred: the predicted class label
-    Output:
-        - emoji: the actual emoji
-    """
-    emoji = None
-    classes = {} #list of labels to emojis
-    if(pred in classes):
-        emoji = classes[pred]
-
-    return emoji
+    return emoji_pred
 #############################################
 
 df = None
@@ -70,7 +56,7 @@ if df is not None:
     )
 
     if (user_input):
-        st.write(user_input)
+        st.write('Your input is:', user_input)
 
         translator = str.maketrans('', '', string.punctuation)
         # check if the feature contains string or not
@@ -81,11 +67,10 @@ if df is not None:
             text_count = count_vect.transform([user_input_updates])
             # Initialize encoded_user_input with text_count as default
             encoded_user_input = text_count
-            if 'tfidf_transformer' in st.session_state:
-                tfidf_transformer = st.session_state['tfidf_transformer']
-                encoded_user_input = tfidf_transformer.transform(text_count)
-            
-            #product_sentiment = st.session_state["deploy_model"].predict(encoded_user_input)
-            tweet_prediction = deploy_model(encoded_user_input)
-            if(tweet_prediction):
-                st.write('The tweet is predicted to be: ', tweet_prediction)
+        if 'tfidf_transformer' in st.session_state:
+            tfidf_transformer = st.session_state['tfidf_transformer']
+            encoded_user_input = tfidf_transformer.transform(text_count)
+        
+        #product_sentiment = st.session_state["deploy_model"].predict(encoded_user_input)
+        tweet_prediction = deploy_model(encoded_user_input)
+        st.write('The tweet is predicted to be: ', tweet_prediction)

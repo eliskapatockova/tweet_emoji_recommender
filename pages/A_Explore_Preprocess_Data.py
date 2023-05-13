@@ -124,11 +124,11 @@ def word_count_encoder(df, feature):
 
     # word_encoder.append('Word Count')
     # st.session_state['word_encoder'] = word_encoder
-    # st.session_state['count_vect'] = count_vect
+    st.session_state['count_vect'] = count_vect
 
     return df
 
-def tf_idf_encoder(df, feature, word_encoder):
+def tf_idf_encoder(df, feature):
     vectorizer = TfidfVectorizer(max_features=10000, ngram_range=(1, 3))
     X = vectorizer.fit_transform(df[feature])
 
@@ -141,7 +141,7 @@ def tf_idf_encoder(df, feature, word_encoder):
 
     # word_encoder.append('TFITDF Count')
     # st.session_state['tfidf_encoder'] = word_encoder
-    # st.session_state['tfidf_vect'] = vectorizer
+    st.session_state['tfidf_transformer'] = vectorizer
     
     return df
 
@@ -210,13 +210,16 @@ if df is not None:
         prep_df = prep_df.explode("Emoji").reset_index(drop=True)
         st.write("Emoji lists turned into one emoji per tweet")
 
+        prep_df = prep_df.dropna()
+
         word_encoded_df = word_count_encoder(prep_df, 'Text')
-        word_encoded_df.to_csv("./data/preprocessed_df.csv", index=False
+        word_encoded_df.to_csv("./data/preprocessed_sample_df.csv", index=False
                                )
         st.write("Word Encoded & Saved")
 
         st.dataframe(prep_df)
-        st.session_state['data'] = prep_df
+        st.session_state['data'] = word_encoded_df
+        df = word_encoded_df
 
     # Inspect the dataset
     # if (prep_df is not None):
@@ -229,42 +232,42 @@ if df is not None:
     #         len(emoji_df), emoji))
     #     st.dataframe(emoji_df)
 
-    st.markdown('### Encode Tweet Text Data')
-    # string_columns = list(df.select_dtypes(['object']).columns)
-    # string_columns = list(df.select_dtypes(['string']).columns)
-    word_encoder = []
-    word_count_col, tf_idf_col = st.columns(2)
-    # Perform Word Count Encoding
-    with word_count_col:
-        st.write('Word Count Encoding')
-        word_encoded_df = None
-        if (st.button('Word Encoder')):
-            prep_df = st.session_state['data']
-            st.dataframe(prep_df)
-            st.dataframe(prep_df.reset_index(drop=True))
-            word_encoded_df = word_count_encoder(prep_df, 'Text', "Word Encode")
-            # Show updated dataset
-            st.write('Word Count Encoding has been applied to {} tweets.'.format(len(word_encoded_df.index)))
-            st.write('Updated dataset:')
-            st.dataframe(word_encoded_df)
-            # df = word_encoded_df
-            st.session_state['data'] = word_encoded_df
+    # st.markdown('### Encode Tweet Text Data')
+    # # string_columns = list(df.select_dtypes(['object']).columns)
+    # # string_columns = list(df.select_dtypes(['string']).columns)
+    # word_encoder = []
+    # word_count_col, tf_idf_col = st.columns(2)
+    # # Perform Word Count Encoding
+    # with word_count_col:
+    #     st.write('Word Count Encoding')
+    #     word_encoded_df = None
+    #     if (st.button('Word Encoder')):
+    #         prep_df = st.session_state['data']
+    #         st.dataframe(prep_df)
+    #         st.dataframe(prep_df.reset_index(drop=True))
+    #         word_encoded_df = word_count_encoder(prep_df, 'Text', "Word Encode")
+    #         # Show updated dataset
+    #         st.write('Word Count Encoding has been applied to {} tweets.'.format(len(word_encoded_df.index)))
+    #         st.write('Updated dataset:')
+    #         st.dataframe(word_encoded_df)
+    #         # df = word_encoded_df
+    #         st.session_state['data'] = word_encoded_df
 
-    # Perform TF-IDF Encoding
-    with tf_idf_col:
-        st.write('TF-IDF Encoding')
-        tfidf_encoded_df = None
-        if (st.button('TF-IDF Encoder')):
-            prep_df = st.session_state['data']
-            tfidf_encoded_df = tf_idf_encoder(prep_df, 'Text', "TFIDF Encode")
-            # Show updated dataset
-            st.write('TF-IDF Encoding has been applied to {} tweets.'.format(len(tfidf_encoded_df.index)))
-            st.write('Updated dataset:')
-            st.dataframe(tfidf_encoded_df)
-            # df = tfidf_encoded_df
-            st.session_state['data'] = tfidf_encoded_df
+    # # Perform TF-IDF Encoding
+    # with tf_idf_col:
+    #     st.write('TF-IDF Encoding')
+    #     tfidf_encoded_df = None
+    #     if (st.button('TF-IDF Encoder')):
+    #         prep_df = st.session_state['data']
+    #         tfidf_encoded_df = tf_idf_encoder(prep_df, 'Text')
+    #         # Show updated dataset
+    #         st.write('TF-IDF Encoding has been applied to {} tweets.'.format(len(tfidf_encoded_df.index)))
+    #         st.write('Updated dataset:')
+    #         st.dataframe(tfidf_encoded_df)
+    #         # df = tfidf_encoded_df
+    #         st.session_state['data'] = tfidf_encoded_df
         
-    st.markdown('### Encode Emojis Class Labels into Numerical Values')
+    # st.markdown('### Encode Emojis Class Labels into Numerical Values')
 
     # df['Emoji_Labels'] = df['Emoji'].astype('category').cat.codes
     # st.dataframe(df)

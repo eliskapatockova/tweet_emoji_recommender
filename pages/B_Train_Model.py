@@ -3,6 +3,8 @@ from helper_functions import fetch_dataset
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+import pandas as pd
+import numpy as np
 
 
 #############################################
@@ -11,17 +13,14 @@ st.markdown("# Practical Applications of Machine Learning (PAML)")
 
 #############################################
 
-st.markdown("### Final Project - <project title>")
+st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 #############################################
 
 st.title('Train Model')
 
 #############################################
-df = None
-df = fetch_dataset()
-
-def split_dataset(df, number, feature_encoding, random_state=42):
+def split_dataset(df, number, random_state=42):
     """
     This function splits the dataset into the training and test sets.
     Input:
@@ -37,28 +36,16 @@ def split_dataset(df, number, feature_encoding, random_state=42):
         - y_train: training targets
         - y_val: test/validation targets
     """
-    X_train = []
-    X_val = []
-    y_train = []
-    y_val = []
-
-    X_train_emoji, X_val_emoji = [], []
+    # X_train = []
+    # X_val = []
+    # y_train = []
+    # y_val = []
     try:
-        X, y = df.drop(['Emoji', 'Tweet'], axis=1), df["Emoji"]
-
+        
+        X, y = df.drop(['Emoji', 'Text'], axis=1), df["Emoji"]
         # Split the train and test sets into X_train, X_val, y_train, y_val using X, y, number/100, and random_state
         X_train, X_val, y_train, y_val = train_test_split(
             X, y, test_size=number/100, random_state=random_state)
-
-        # Use the column word_count as a feature and the column sentiment as the target
-        if ('TF-IDF' in feature_encoding):
-            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith('tf_idf_word_count_')]
-            X_val_emoji = X_val.loc[:, X_val.columns.str.startswith('tf_idf_word_count_')]
-        elif ('Word Count' in feature_encoding):
-            X_train_emoji = X_train.loc[:, X_train.columns.str.startswith('word_count_')]
-            X_val_emoji = X_val.loc[:, X_val.columns.str.startswith('word_count_')]
-        else:
-            st.write('Invalid feature encoding provided in split_dataset')
 
         # Compute dataset percentages
         train_percentage = (len(X_train) /
@@ -71,15 +58,14 @@ def split_dataset(df, number, feature_encoding, random_state=42):
                                                                                                                                                           train_percentage,
                                                                                                                                                           len(X_val),
                                                                                                                                                           test_percentage))
-
         # Save train and test split to st.session_state
-        st.session_state['X_train'] = X_train_emoji
-        st.session_state['X_val'] = X_val_emoji
+        st.session_state['X_train'] = X_train
+        st.session_state['X_val'] = X_val
         st.session_state['y_train'] = y_train
         st.session_state['y_val'] = y_val
     except:
         print('Exception thrown; testing test size to 0')
-    return X_train_emoji, X_val_emoji, y_train, y_val
+    return X_train, X_val, y_train, y_val
 
 
 def inspect_coefficients(models):
@@ -95,41 +81,70 @@ def inspect_coefficients(models):
     out_dict = {}
     for model_name, model in models.items():
         if (model_name == 'Random Forest'):
-            out_dict[model_name] = model.feature_importances_
-            st.write('### Coefficients inspection for {0}'.format(model_name))
-            st.write('Number of positive coefficients: {0}'.format(
-                    len(model.feature_importances_[model.feature_importances_ > 0])))
-            st.write('Number of negative coefficients: {0}'.format(
-                len(model.feature_importances_[model.feature_importances_ < 0])))
+            feature_importances = model.feature_importances_
+            out_dict[model_name] = feature_importances
+            st.write('### Feature Importances for {0}'.format(model_name))
+            st.write('Total number of features: {0}'.format(len(feature_importances)))
+            st.write('Number of important features: {0}'.format(len(feature_importances[feature_importances > 0])))
 
-        elif (model_name == 'MLP'):
-            coef = model.coef_
+        elif (model_name == 'Neural Network (MLP)'):
+            coef = model.coefs_ 
             out_dict[model_name] = coef
+            total_count = 0
+            positive_count = 0
+            negative_count = 0
+
+            for layer_weights in coef:
+                layer_weights = np.array(layer_weights)
+                positive_count += np.count_nonzero(layer_weights > 0)
+                negative_count += np.count_nonzero(layer_weights < 0)
+                total_count += layer_weights.size
+
             st.write('### Coefficients inspection for {0}'.format(model_name))
-            st.write('Total number of coefficients: {0}'.format(coef.shape[1]))
-            st.write('Number of positive coefficients: {0}'.format(
-                    len(coef[coef > 0])))
-            st.write('Number of negative coefficients: {0}'.format(
-                len(coef[coef < 0])))
+            st.write('Total number of coefficients: {0}'.format(len(coef)))
+            for i, c in enumerate(coef):
+                st.write(f"Weight matrix {i} shape: {c.shape}")
+            st.write('Number of positive coefficients: {0}'.format(positive_count))
+            st.write('Number of negative coefficients: {0}'.format(negative_count))
+        
         else:
             st.write('Invalid model name provided in inspect_coefficients')
     return out_dict
 
-def train_random_forest(X_train, y_train, params):
+def train_random_forest(params):
+    X_train =  st.session_state['X_train']
+    y_train =  st.session_state['y_train']
+    # st.write(X_train)
     model = RandomForestClassifier(n_estimators=params['n_estimators'], 
                                    max_depth=params['max_depth'], 
                                    random_state=params['random_state'])
+    # y_train = np.array(y_train).reshape(-1, 1)
+              
     model.fit(X_train, y_train)
     return model
 
-def train_mlp(X_train, y_train, params):
+def train_mlp(params):
+    X_train =  st.session_state['X_train']
+    y_train =  st.session_state['y_train']
     model = MLPClassifier(hidden_layer_sizes=params['hidden_layer_sizes'], 
                           activation=params['activation'], 
                           max_iter=params['max_iter'], 
                           random_state=params['random_state'])
     model.fit(X_train, y_train)
     return model
+#############################################################################################################
 
+df = None
+df = fetch_dataset()
+
+if st.button('Load New Dataset'):
+    data = st.file_uploader(
+            'Upload a Dataset', type=['csv', 'txt'])
+    if (data):
+        df = pd.read_csv(data)
+    if df is not None:
+        st.write("Loaded dataset has {} rows and {} columns.".format(
+            df.shape[0], df.shape[1]))
 
 if df is not None:
     # Display dataframe as table
@@ -159,16 +174,16 @@ if df is not None:
     st.markdown(
         '#### Enter the percentage of validation/test data to use for training the model')
     number = st.number_input(
-        label='Enter size of test set (X%)', min_value=0, max_value=100, value=30, step=1)
-
+        label='Enter size of test set (X%)', min_value=1, max_value=100, value=30, step=1)
+    st.write('You selected {}% of the dataset for training'.format(number))
     X_train, X_val, y_train, y_val = [], [], [], []
     # Compute the percentage of test and training data
     if (st.button('Split dataset')):
-        X_train, X_val, y_train, y_val = split_dataset(df, number, feature_input_select)
+        X_train, X_val, y_train, y_val = split_dataset(df, number)
 
     # Train models
     st.markdown('### Train models')
-    model_options = ['Random Forest', 'MLP Classifier']
+    model_options = ['Random Forest', 'Neural Network (MLP)']
 
     # Collect ML Models of interests
     model_select = st.multiselect(
@@ -221,7 +236,7 @@ if df is not None:
 
             param_col1, param_col2 = st.columns(2)
             with (param_col1):
-                param4_options = [(100,), (200,), (300,), (400,)]  # Number of neurons in hidden layers
+                param4_options = [(5,), (100,), (200,), (300,), (400,)]  # Number of neurons in hidden layers
                 param4_select = st.selectbox(
                 label='Select number of neurons in hidden layers',
                 options=param4_options,
@@ -232,7 +247,7 @@ if df is not None:
                 param5_options = ['relu', 'tanh', 'logistic']  # Activation function
                 param5_select = st.selectbox(
                     label='Select which activation function to use',
-                    options=param2_options,
+                    options=param5_options,
                     key='param5_options'
                 )
                 st.write('You select the following activation function: {}'.format(param5_options))
@@ -260,13 +275,13 @@ if df is not None:
                 'max_iter': param6_select,
                 'random_state': param7_select
             }
-
+        
         if st.button('Train Random Forest Model'):
-            st.session_state[model_options[0]] = train_random_forest(X_train, y_train, rf_params)
+            st.session_state[model_options[0]] = train_random_forest(rf_params)
             # st.write('Random Forest Model trained')
 
         if st.button('Train Neural Network Classifier (MLP) Model'):
-            st.session_state[model_options[1]] = train_mlp(X_train, y_train, nn_params)
+            st.session_state[model_options[1]] = train_mlp(nn_params)
             # st.write('Neural Network Classifier (MLP) Model trained')
 
         if model_options[0] not in st.session_state:

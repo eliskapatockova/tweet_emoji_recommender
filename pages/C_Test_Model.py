@@ -1,29 +1,27 @@
 import streamlit as st                  # pip install streamlit
-from helper_functions import fetch_dataset, compute_precision, compute_recall, compute_accuracy, compute_f1_score
+from helper_functions import fetch_dataset, compute_metrics, compute_accuracy, apply_threshold
 from pages.B_Train_Model import split_dataset
-
-
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from sklearn.metrics import recall_score, precision_score
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
 #############################################
 
 st.markdown("# Practical Applications of Machine Learning (PAML)")
 
 #############################################
 
-st.markdown("### Final Project - <project title>")
+st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 #############################################
 
 st.title('Test Model')
 #############################################
-METRICS_MAP = {
-    'precision': compute_precision,
-    'recall': compute_recall,
-    'accuracy': compute_accuracy,
-    'f1_score': compute_f1_score
-}
 
 # Helper Functions
-def compute_eval_metrics(X, y_true, model, metrics):
+def compute_eval_metrics(X, y_true, model, model_name):
     """
     This function computes one or more metrics (precision, recall, accuracy) using the model
 
@@ -46,8 +44,14 @@ def compute_eval_metrics(X, y_true, model, metrics):
     y_pred = model.predict(X)
 
     # Compute the evaluation metrics in 'metrics = ['precision', 'recall', 'accuracy']' using the predicted sentiment
-    for metric in metrics:
-        metric_dict[metric] = METRICS_MAP[metric](y_true, y_pred)
+    if model_name == "Neural Network (MLP)":
+        metric_dict['precision'], metric_dict['recall'], metric_dict['f1_score'] = compute_metrics(
+            y_true, y_pred)
+        metric_dict['accuracy'] = compute_accuracy(y_true, y_pred)
+    elif model_name == "Random Forest":
+        metric_dict['precision'], metric_dict['recall'], metric_dict['f1_score'] = compute_metrics(
+            y_true, y_pred)
+        metric_dict['accuracy'] = compute_accuracy(y_true, y_pred)
 
     return metric_dict
 
@@ -97,6 +101,86 @@ def restore_data_splits(df):
         st.write('Restored training and test data ...')
     return X_train, X_val, y_train, y_val
 
+def plot_roc_curve(X_train, X_val, y_train, y_val, trained_models, model_names):
+    """
+    Plot the ROC curve between predicted and actual values for model names in trained_models on the training and validation datasets
+
+    Input:
+        - X_train: training input data
+        - X_val: test input data
+        - y_true: true targets
+        - y_pred: predicted targets
+        - trained_model_names: trained model names
+        - trained_models: trained models in a dictionary (accessed with model name)
+    Output:
+        - fig: the plotted figure
+        - df: a dataframe containing the train and validation errors, with the following keys:
+            - df[model_name.__name__ + " Train Precision"] = train_precision_all
+            - df[model_name.__name__ + " Train Recall"] = train_recall_all
+            - df[model_name.__name__ + " Validation Precision"] = val_precision_all
+            - df[model_name.__name__ + " Validation Recall"] = val_recall_all
+    """
+    # Set up figures
+    fig = make_subplots(rows=len(trained_models), cols=1,
+                        shared_xaxes=True, vertical_spacing=0.1)
+
+    # Intialize variables
+    df = pd.DataFrame()
+    threshold_values = np.linspace(0.5, 1, num=100)
+    label_encoder = LabelEncoder()
+    y_train_encoded = label_encoder.fit_transform(y_train)
+    y_val_encoded = label_encoder.transform(y_val)
+
+    for i, trained_model in enumerate(trained_models):
+        model_name = model_names[i]
+
+        train_precision_all = []
+        train_recall_all = []
+        val_precision_all = []
+        val_recall_all = []
+        train_probabilities = []
+        val_probabilities = []
+
+        # Make predictions on the train and test set using predict_proba() function
+        train_probabilities = trained_model.predict_proba(X_train)
+        val_probabilities = trained_model.predict_proba(X_val)
+
+        # Computer precision and recall on training set using threshold_values
+        # Computer precision and recall on validation set using threshold_values
+        for threshold in threshold_values:
+            train_predictions = apply_threshold(
+                train_probabilities, threshold)
+            val_predictions = apply_threshold(val_probabilities, threshold)
+
+            precision = precision_score(
+                y_train_encoded, train_predictions, zero_division=1)
+            recall = recall_score(y_train_encoded, train_predictions)
+            train_precision_all.append(precision)
+            train_recall_all.append(recall)
+
+            precision = precision_score(
+                y_val_encoded, val_predictions, zero_division=1)
+            recall = recall_score(y_val, val_predictions)
+            val_precision_all.append(precision)
+            val_recall_all.append(recall)
+
+        # Plot ROC Curve
+        fig.add_trace(go.Scatter(x=train_recall_all,
+                                 y=train_precision_all, name="Train"), row=i+1, col=1)
+
+        fig.add_trace(go.Scatter(x=val_recall_all,
+                                 y=val_precision_all, name="Validation"), row=i+1, col=1)
+
+        fig.update_xaxes(title_text="Recall")
+        fig.update_yaxes(title_text='Precision', row=i+1, col=1)
+        fig.update_layout(title=model_name+' ROC Curve')
+        # Save output values
+        df[model_name+" Train Precision"] = train_precision_all
+        df[model_name+" Train Recall"] = train_recall_all
+        df[model_name+" Validation Precision"] = val_precision_all
+        df[model_name+" Validation Recall"] = val_recall_all
+    return fig, df
+
 
 #############################################
 
@@ -106,7 +190,7 @@ df = fetch_dataset()
 if df is not None:
     X_train, X_val, y_train, y_val = restore_data_splits(df)
     st.markdown("### Get Performance Metrics")
-    metric_options = ['precision', 'recall', 'accuracy', 'f1-score']
+    metric_options = ['precision', 'recall', 'accuracy', 'f1_score']
     model_options = ['Random Forest', 'Neural Network (MLP)']
     trained_models = [model for model in model_options if model in st.session_state]
     st.session_state['trained_models'] = trained_models
@@ -129,15 +213,19 @@ if df is not None:
         if 'eval_button_clicked' in st.session_state and st.session_state['eval_button_clicked']:
             st.markdown('### Review Model Performance')
 
-            review_options = ['plot', 'metrics']
+            review_options = ['ROC Curve', 'metrics']
 
             review_plot = st.multiselect(
                 label='Select plot option(s)',
                 options=review_options
             )
 
-            if 'plot' in review_plot:
-                pass #TODO: add plot
+            if 'ROC Curve' in review_plot:
+                trained_select = [st.session_state[model]
+                                  for model in model_select]
+                fig, df = plot_roc_curve(
+                    X_train, X_val, y_train, y_val, trained_select, model_select)
+                st.plotly_chart(fig)
 
             if 'metrics' in review_plot:
                 models = [st.session_state[model]
@@ -146,27 +234,20 @@ if df is not None:
                 train_result_dict = {}
                 val_result_dict = {}
 
-                # Select multiple metrics for evaluation
-                metric_select = st.multiselect(
-                    label='Select metrics for classification model evaluation',
-                    options=metric_options,
-                )
-                if (metric_select):
-                    st.session_state['metric_select'] = metric_select
-                    st.write(
-                        'You selected the following metrics: {}'.format(metric_select))
 
-                    for idx, model in enumerate(models):
-                        train_result_dict[model_select[idx]] = compute_eval_metrics(
-                            X_train, y_train, model, metric_select)
-                        val_result_dict[model_select[idx]] = compute_eval_metrics(
-                            X_val, y_val, model, metric_select)
+                for idx, model in enumerate(models):
+                    model_name = model_select[idx]
+                    st.write(model_name)
+                    train_result_dict[model_select[idx]] = compute_eval_metrics(
+                        X_train, y_train, model, model_name)
+                    val_result_dict[model_select[idx]] = compute_eval_metrics(
+                        X_val, y_val, model, model_name)
 
-                    st.markdown('### Predictions on the training dataset')
-                    st.dataframe(train_result_dict)
+                st.markdown('### Predictions on the training dataset')
+                st.dataframe(train_result_dict)
 
-                    st.markdown('### Predictions on the validation dataset')
-                    st.dataframe(val_result_dict)
+                st.markdown('### Predictions on the validation dataset')
+                st.dataframe(val_result_dict)
 
     # Select a model to deploy from the trained models
     st.markdown("### Choose your Deployment Model")
