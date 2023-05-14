@@ -47,6 +47,7 @@ if (st.button('Train Models')):
             st.write(f" - Precision: {precision_score(y_val, y_pred, average='samples')}")
             st.write(f" - Recall: {recall_score(y_val, y_pred, average='samples')}")
             st.write(f" - Hamming Loss: {hamming_loss(y_val, y_pred)}")
+            # TODO ROC CURVE?
     st.session_state["trained"] = True
 
 encoding = st.selectbox(
