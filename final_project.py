@@ -10,10 +10,9 @@ st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 st.markdown("Add some description about your project, team, etc")
 
-st.markdown("##### Team Members: Aya Chehabi (ac2532), TO COMPLETE")
+st.markdown("##### Team Members: Aya Chehabi (ac2532), Eliska Patockova (ep525), Roshan Ravi (rr649), Olena Bogdanov (ob234), David Lesser (dl846)")
 
 st.markdown("##### Project Description:")
-st.markdown("TO COMPLETE")
 
 st.markdown("The use of AI in keyboard predictive text (as seen in iMessage, WhatsApp, etc) has become a common and useful form of assistance")
 
