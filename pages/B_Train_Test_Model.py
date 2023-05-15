@@ -6,6 +6,11 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, recall_score, precision_score, hamming_loss
 from sklearn.naive_bayes import MultinomialNB
 from skmultilearn.problem_transform import BinaryRelevance, ClassifierChain, LabelPowerset
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+
 
 #############################################
 
@@ -47,7 +52,7 @@ if (st.button('Train Models')):
             st.write(f" - Precision: {precision_score(y_val, y_pred, average='samples')}")
             st.write(f" - Recall: {recall_score(y_val, y_pred, average='samples')}")
             st.write(f" - Hamming Loss: {hamming_loss(y_val, y_pred)}")
-            # TODO ROC CURVE?
+
     st.session_state["trained"] = True
     st.markdown("##### Models have been trained.")
 

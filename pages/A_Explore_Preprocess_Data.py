@@ -345,7 +345,7 @@ if st.button('Explore Data') or 'explore_data_pressed' in st.session_state:
 
 
 st.markdown("### Encoding")
-if st.button('word encoding'):
+if st.button('Word and TF-IDF encoding'):
 
     prep_df = st.session_state['prep_df']
         
