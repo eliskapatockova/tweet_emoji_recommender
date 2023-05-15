@@ -4,7 +4,6 @@ import streamlit as st                  # pip install streamlit
 from sklearn.metrics import recall_score, precision_score, accuracy_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support
 
-
 # All pages
 
 def apply_threshold(probabilities, threshold):
@@ -33,7 +32,6 @@ def fetch_dataset():
     if df is not None:
         st.session_state['data'] = df
     return df
-
 
 def compute_accuracy(y_true, y_pred):
     """
@@ -64,7 +62,6 @@ def compute_metrics_nn(y_true, y_pred):
     precision = precision_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred)
     return precision, recall, f1
-
 
 def compute_metrics(y_true, y_pred):
     """

@@ -1,0 +1,11 @@
+scikit-multilearn
+regex
+langdetect 
+nltk 
+emoji 
+helper_functions 
+opencv-python
+seaborn
+more-itertools
+plotly.express 
+
