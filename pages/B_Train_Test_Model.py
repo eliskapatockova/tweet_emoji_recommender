@@ -49,14 +49,21 @@ if (st.button('Train Models')):
             st.write(f" - Hamming Loss: {hamming_loss(y_val, y_pred)}")
             # TODO ROC CURVE?
     st.session_state["trained"] = True
+    st.markdown("##### Models have been trained.")
+
+
+
+st.markdown("### Deploy Model Selection")
+
 
 encoding = st.selectbox(
-    label='Select encoding:',
+    label='Select which type of encoding for deployment:',
     options=encodings,
     key='encoding'
 )
+
 model_name = st.selectbox(
-    label='Select model:',
+    label='Select which model to deploy:',
     options=[model_name for (model_name, model) in models],
     key='model_name'
 )

@@ -11,7 +11,7 @@ st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 #############################################
 
-st.title('Deploy Application')
+st.title('Deployed Application')
 #############################################
 # Deploy App
 st.markdown('### Introducing the Tweet Emoji Recommender')
