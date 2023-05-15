@@ -312,7 +312,8 @@ if st.button('Explore Data') or 'explore_data_pressed' in st.session_state:
 
         # Plot the distribution of emojis
         st.markdown('Emoji Distribution:')
-        st.bar_chart(emoji_counts)
+        emoji_df = pd.DataFrame.from_dict(emoji_counts, orient='index', columns=['Count'])
+        st.bar_chart(emoji_df)
 
         prep_df = st.session_state['prep_df']
         st.markdown("### Word Frequency Plot")

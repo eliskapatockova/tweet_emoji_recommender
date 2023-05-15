@@ -7,7 +7,7 @@ st.markdown("# Practical Applications of Machine Learning (PAML)")
 
 #############################################
 
-st.markdown("### Final Project - <project title>")
+st.markdown("### Final Project - Tweet Emoji Recommendation")
 
 #############################################
 
