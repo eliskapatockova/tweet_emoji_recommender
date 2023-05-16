@@ -7,6 +7,8 @@ Data preprocessing includes separating emojis from text and removing special cha
 
 
 This project trains 3 different models: Binary Relevance, Classifier Chain, and Label Powerset. Based on our experimentation, Word Encoded Label Powerset performs the best.  
+
+
 Finally, the model is deployed on the final page and can be tested using new potential tweets.
 
 ### Setup Instructions
